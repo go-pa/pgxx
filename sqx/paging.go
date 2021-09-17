@@ -1,21 +1,24 @@
 package sqx
 
 import (
+	"context"
+	"fmt"
 	"io"
-	"log"
 	"net/url"
 	"strconv"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/go-pa/pgxx/logging"
 )
 
-// PagingOptions .
+// PagingOptions.
+// To completley disable logging it is recommended to set
 type PagingOptions struct {
 	DefaultPageSize     int64
 	MaxPageSize         int64 // set to -1 to disable max page size
 	PageSizeParameter   string
 	PageNumberParameter string
-	Logger              io.Writer
+	Logger              logging.LoggerFunc
 }
 
 var DefaultPagingOptions = PagingOptions{
@@ -23,19 +26,19 @@ var DefaultPagingOptions = PagingOptions{
 	MaxPageSize:         1000,
 	PageSizeParameter:   "size",
 	PageNumberParameter: "page",
-	Logger:              log.Writer(),
+	Logger:              logging.Get,
 }
 
 // WithPaging
-func WithPaging(sb sq.SelectBuilder, q url.Values, opts *PagingOptions) sq.SelectBuilder {
+func WithPaging(ctx context.Context, sb sq.SelectBuilder, q url.Values, opts *PagingOptions) sq.SelectBuilder {
+	logger := opts.getLogger(ctx)
 	size := opts.getDefaultPageSize()
-
 	pageSizeParam := opts.getPageSizeParameter()
 	if q.Get(pageSizeParam) != "" {
 		s := q.Get(pageSizeParam)
 		n, err := strconv.ParseInt(s, 10, 64)
-		if err != nil {
-			// TODO: used to be application specific logging here
+		if err != nil && logger != nil {
+			fmt.Fprintf(logger, "could not parse page size paramenter %s: %v", s, err)
 		} else {
 			size = n
 		}
@@ -88,9 +91,12 @@ func (p *PagingOptions) getPageNumberParameter() string {
 	return p.PageNumberParameter
 }
 
-func (p *PagingOptions) getLogger() io.Writer {
+func (p *PagingOptions) getLogger(ctx context.Context) io.Writer {
 	if p == nil || p.Logger == nil {
-		return DefaultPagingOptions.Logger
+		if DefaultPagingOptions.Logger == nil {
+			return nil
+		}
+		return DefaultPagingOptions.Logger(ctx)
 	}
-	return p.Logger
+	return p.Logger(ctx)
 }

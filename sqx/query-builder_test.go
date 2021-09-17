@@ -1,6 +1,7 @@
 package sqx
 
 import (
+	"context"
 	"net/url"
 	"testing"
 
@@ -13,32 +14,34 @@ func query() sq.SelectBuilder {
 }
 
 func TestWithPaging(t *testing.T) {
+	ctx := context.Background()
 	t.Run("default", func(t *testing.T) {
-		sql, _, err := WithPaging(query(), url.Values{}, nil).ToSql()
+		sql, _, err := WithPaging(ctx, query(), url.Values{}, nil).ToSql()
 		assert.NoError(t, err)
 		assert.EqualValues(t, "SELECT * FROM table LIMIT 100 OFFSET 0", sql)
 	})
 	t.Run("default size, page 10", func(t *testing.T) {
-		sql, _, err := WithPaging(query(), url.Values{"page": {"10"}}, &PagingOptions{DefaultPageSize: 100}).ToSql()
+		sql, _, err := WithPaging(ctx, query(), url.Values{"page": {"10"}}, &PagingOptions{DefaultPageSize: 100}).ToSql()
 		assert.NoError(t, err)
 		assert.EqualValues(t, "SELECT * FROM table LIMIT 100 OFFSET 1000", sql)
 	})
 	t.Run("size 10, page 10", func(t *testing.T) {
-		sql, _, err := WithPaging(query(), url.Values{"page": {"10"}, "size": {"10"}}, &PagingOptions{DefaultPageSize: 10}).ToSql()
+		sql, _, err := WithPaging(ctx, query(), url.Values{"page": {"10"}, "size": {"10"}}, &PagingOptions{DefaultPageSize: 10}).ToSql()
 		assert.NoError(t, err)
 		assert.EqualValues(t, "SELECT * FROM table LIMIT 10 OFFSET 100", sql)
 	})
 }
 
 func TestWithOrderBy(t *testing.T) {
+	ctx := context.Background()
 	t.Run("default", func(t *testing.T) {
-		sql, _, err := WithOrderBy(query(), url.Values{}, "default", []OrderByMapping{}).ToSql()
+		sql, _, err := WithOrderBy(ctx, query(), url.Values{}, "default", []OrderByMapping{}).ToSql()
 		assert.NoError(t, err)
 		assert.EqualValues(t, "SELECT * FROM table ORDER BY default", sql)
 	})
 
 	t.Run("default2", func(t *testing.T) {
-		sql, _, err := WithOrderBy(query(), url.Values{}, "default",
+		sql, _, err := WithOrderBy(ctx, query(), url.Values{}, "default",
 			[]OrderByMapping{
 				{
 					Key:    "key1",
@@ -50,7 +53,7 @@ func TestWithOrderBy(t *testing.T) {
 	})
 
 	t.Run("asc", func(t *testing.T) {
-		sql, _, err := WithOrderBy(query(), url.Values{"order_by": {"key1,ignored"}}, "default",
+		sql, _, err := WithOrderBy(ctx, query(), url.Values{"order_by": {"key1,ignored"}}, "default",
 			[]OrderByMapping{
 				{
 					Key:    "key1",
@@ -62,7 +65,7 @@ func TestWithOrderBy(t *testing.T) {
 	})
 
 	t.Run("desc", func(t *testing.T) {
-		sql, _, err := WithOrderBy(query(), url.Values{"order_by": {"-key1"}}, "default",
+		sql, _, err := WithOrderBy(ctx, query(), url.Values{"order_by": {"-key1"}}, "default",
 			[]OrderByMapping{
 				{
 					Key:    "key1",
@@ -74,7 +77,7 @@ func TestWithOrderBy(t *testing.T) {
 	})
 
 	t.Run("multi", func(t *testing.T) {
-		sql, _, err := WithOrderBy(query(), url.Values{"order_by": {"key1,-key2,key3"}}, "default",
+		sql, _, err := WithOrderBy(ctx, query(), url.Values{"order_by": {"key1,-key2,key3"}}, "default",
 			[]OrderByMapping{
 				{
 					Key:    "key1",

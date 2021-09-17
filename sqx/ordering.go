@@ -1,6 +1,7 @@
 package sqx
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"strings"
@@ -16,7 +17,7 @@ type OrderByMapping struct {
 	Fields []string
 }
 
-func WithOrderBy(sb sq.SelectBuilder, q url.Values, defaultOrdering string, mapping []OrderByMapping) sq.SelectBuilder {
+func WithOrderBy(ctx context.Context, sb sq.SelectBuilder, q url.Values, defaultOrdering string, mapping []OrderByMapping) sq.SelectBuilder {
 	if q.Get("order_by") == "" {
 		if defaultOrdering == "" {
 			return sb
